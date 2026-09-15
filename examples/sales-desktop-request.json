@@ -1,0 +1,11 @@
+{
+  "project": "./PowerBI-AI-Starter.pbip",
+  "output": "../output/AutonomousSales/AutonomousSales.pbip",
+  "sources": ["./sales.csv"],
+  "business_goal": "Analyze revenue, profitability, customers, products, regional trends, YoY growth and drill-through details",
+  "modeling": {"mode": "mcp"},
+  "remote_schema": true,
+  "auto_open_powerbi": true,
+  "runtime": {"desktop": true, "native_refresh": true},
+  "visual_qa": false
+}

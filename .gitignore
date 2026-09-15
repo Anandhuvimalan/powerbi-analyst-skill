@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+node_modules/
+build/
+dist/
+output/
+.powerbi-agent/
+**/.pbi/
+*.pbix
+.env
+.runtime/

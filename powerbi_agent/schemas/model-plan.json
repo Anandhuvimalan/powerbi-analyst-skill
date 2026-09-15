@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["tables", "measures", "relationships"],
+  "additionalProperties": false,
+  "properties": {
+    "domain": {"type": "string"},
+    "assumptions": {"type": "array", "items": {"type": "string"}},
+    "tables": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["name", "kind", "columns", "m"], "properties": {
+      "name": {"type": "string", "minLength": 1}, "kind": {"enum": ["fact", "dimension", "staging"]},
+      "m": {"type": "string", "minLength": 1}, "hidden": {"type": "boolean"}, "is_date": {"type": "boolean"},
+      "columns": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["name", "data_type"], "properties": {
+        "name": {"type": "string", "minLength": 1}, "data_type": {"enum": ["string", "int64", "double", "decimal", "dateTime", "boolean"]},
+        "expression": {"type": "string"}, "source_column": {"type": "string"}, "hidden": {"type": "boolean"}, "format": {"type": "string"},
+        "sort_by": {"type": "string"}, "unique": {"type": "boolean"}, "is_key": {"type": "boolean"}}}},
+      "hierarchies": {"type": "array", "items": {"type": "object", "required": ["name", "levels"], "properties": {"name": {"type": "string"}, "levels": {"type": "array", "minItems": 1, "items": {"type": "string"}}}}}
+    }}},
+    "measures": {"type": "array", "items": {"type": "object", "required": ["table", "name", "expression", "reason"], "properties": {
+      "table": {"type": "string"}, "name": {"type": "string", "minLength": 1}, "expression": {"type": "string", "minLength": 1}, "reason": {"type": "string", "minLength": 1},
+      "format": {"type": "string"}, "folder": {"type": "string"}, "check": {"type": ["object", "null"]}}}},
+    "relationships": {"type": "array", "items": {"type": "object", "required": ["name", "from_table", "from_column", "to_table", "to_column"], "properties": {
+      "name": {"type": "string"}, "from_table": {"type": "string"}, "from_column": {"type": "string"}, "to_table": {"type": "string"}, "to_column": {"type": "string"},
+      "active": {"type": "boolean"}, "direction": {"const": "oneDirection"}}}},
+    "expressions": {"type": "array", "items": {"type": "object", "required": ["name", "expression"], "properties": {"name": {"type": "string"}, "expression": {"type": "string"}}}},
+    "calculation_groups": {"type": "array", "items": {"type": "object", "required": ["name", "items"], "properties": {
+      "name": {"type": "string"}, "precedence": {"type": "integer"}, "items": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["name", "expression"], "properties": {
+        "name": {"type": "string"}, "expression": {"type": "string"}, "format_expression": {"type": "string"}}}}}}},
+    "roles": {"type": "array", "items": {"type": "object", "required": ["name", "filters"], "properties": {"name": {"type": "string"}, "filters": {"type": "object", "additionalProperties": {"type": "string"}}}}}
+  }
+}

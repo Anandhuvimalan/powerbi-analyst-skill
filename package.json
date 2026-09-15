@@ -1,0 +1,10 @@
+{
+  "name": "powerbi-analyst-execution-tools",
+  "private": true,
+  "description": "Pinned official Microsoft adapters for the Python Power BI builder",
+  "devDependencies": {
+    "@microsoft/powerbi-desktop-bridge-cli": "0.1.2",
+    "@microsoft/powerbi-modeling-mcp": "0.5.0-beta.13",
+    "@microsoft/powerbi-report-authoring-cli": "0.1.4"
+  }
+}

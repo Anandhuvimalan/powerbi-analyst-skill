@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["audience", "decisions", "grain", "findings", "pages", "design_rationale"],
+  "additionalProperties": false,
+  "properties": {
+    "audience": {"type": "string", "minLength": 3},
+    "decisions": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 3}},
+    "grain": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["table", "meaning"], "properties": {
+      "table": {"type": "string"}, "meaning": {"type": "string", "minLength": 3}
+    }, "additionalProperties": false}},
+    "findings": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["observation", "evidence", "implication"], "properties": {
+      "observation": {"type": "string", "minLength": 3},
+      "evidence": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["table", "column"], "properties": {"table": {"type": "string"}, "column": {"type": "string"}}, "additionalProperties": false}},
+      "implication": {"type": "string", "minLength": 3}
+    }, "additionalProperties": false}},
+    "pages": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["page", "decision", "why_needed"], "properties": {
+      "page": {"type": "string"}, "decision": {"type": "string", "minLength": 3}, "why_needed": {"type": "string", "minLength": 3}
+    }, "additionalProperties": false}},
+    "design_rationale": {"type": "string", "minLength": 10},
+    "assumptions": {"type": "array", "items": {"type": "string"}}
+  }
+}

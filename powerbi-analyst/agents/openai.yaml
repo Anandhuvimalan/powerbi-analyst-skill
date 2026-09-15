@@ -1,0 +1,6 @@
+interface:
+  display_name: "Power BI Analyst and Builder"
+  short_description: "Build Power BI projects from data and business decisions"
+  default_prompt: "Use $powerbi-analyst to analyze my data and build a tailored Power BI project with verified measures and purposeful report pages."
+policy:
+  allow_implicit_invocation: true
