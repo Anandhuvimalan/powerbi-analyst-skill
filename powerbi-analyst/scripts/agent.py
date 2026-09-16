@@ -10,7 +10,7 @@ import subprocess
 import sys
 import venv
 
-VERSION = "v0.2.0"
+VERSION = "v0.3.0"
 REPOSITORY = "https://github.com/Anandhuvimalan/powerbi-analyst-skill.git"
 SKILL = Path(__file__).resolve().parents[1]
 

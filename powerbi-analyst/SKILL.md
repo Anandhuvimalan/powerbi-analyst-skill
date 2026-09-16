@@ -39,8 +39,9 @@ machine paths. Existing environments may use `powerbi-agent` directly.
 ## Design from evidence
 
 Read generated profiles and inspect source records/aggregates when necessary.
-The bootstrap model demonstrates connector syntax and field identities. The
-bootstrap report is an example, not the report to automatically deliver.
+The model scaffold demonstrates connector syntax and field identities and needs
+semantic review. `plan` supplies profiles and design context, with no report
+template. Never request `--bootstrap` for a user's analytical deliverable.
 
 Read [analysis and design decisions](references/project-design.md), then use the
 original references where needed:
@@ -58,6 +59,14 @@ typography and colors for the audience and decisions. Do not just rename sales
 pages or recolor the sample. Do not randomize layout for novelty: equally useful
 requirements can justify similar analytical patterns.
 
+Start the report with an empty canvas. Author every visible element: headings,
+annotations, navigation, filters, charts and metric displays. The executor adds
+none of them. Choose the canvas, reading order, alignment, whitespace and native
+formatting together. Explicitly style visuals or the theme so that Power BI's
+default appearance does not become the design. Explain why the leading visual
+and page structure fit the observed data; consider an alternative composition
+before settling on the stronger one. Do not substitute a different preset.
+
 Every page needs a distinct decision or exploratory purpose. Every measure needs
 business meaning; every visual needs a question and valid bindings. Remove
 redundant insights. Appropriate simplicity is better than unsupported complexity.
@@ -74,7 +83,7 @@ sources, goal and target, then run:
 python <skill>/scripts/agent.py run build <request.json>
 ```
 
-Agent mode rejects missing analysis or silently substituted bootstrap plans. It
+Agent mode is the default and rejects missing analysis and marked bootstrap plans. It
 checks that findings reference real source fields and every report page has a
 decision. This traceability does not prove the analysis is correct: assess it.
 

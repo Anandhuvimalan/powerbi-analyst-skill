@@ -8,7 +8,7 @@
     "output": {"type": "string", "pattern": "\\.pbip$"},
     "sources": {"type": "array", "minItems": 1, "items": {"oneOf": [{"type": "string"}, {"type": "object", "properties": {"path": {"type": "string"}, "kind": {"enum": ["sqlserver", "sqlite"]}, "name": {"type": "string"}, "sheet": {"type": "string"}, "table": {"type": "string"}, "schema": {"type": "string"}, "server": {"type": "string"}, "database": {"type": "string"}, "connection_env": {"type": "string"}, "delimiter": {"type": "string", "minLength": 1, "maxLength": 1}}, "additionalProperties": false}]}},
     "business_goal": {"type": "string", "minLength": 1},
-    "agent_mode": {"type": "boolean"},
+    "agent_mode": {"type": "boolean", "default": true, "description": "Require host-authored plans or reasoning.command. False explicitly opts into a preset technical demo."},
     "analysis_brief": {"type": ["string", "object"]},
     "brand": {"type": "object", "properties": {"company": {"type": ["string", "null"]}, "primary_color": {"type": ["string", "null"], "pattern": "^#[a-fA-F0-9]{6}$"}}, "additionalProperties": false},
     "max_rows": {"type": "integer", "minimum": 1, "maximum": 5000000},

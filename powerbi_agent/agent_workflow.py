@@ -8,14 +8,16 @@ from .core import BuildError, read_json
 
 
 def require_agent_inputs(request):
-    if request.get("agent_mode") and not request.get("reasoning"):
+    if request.get("agent_mode", True) and not request.get("reasoning"):
         if not all(request.get(key) for key in ("analysis_brief", "model_plan", "report_plan")):
-            raise BuildError("Agent mode requires analysis_brief, model_plan and report_plan authored from this dataset, or reasoning.command. Run plan to inspect data, then author the plans. A bootstrap dashboard cannot be published as an agent-designed project.")
+            raise BuildError("Agent mode requires analysis_brief, model_plan and report_plan authored from this dataset, or reasoning.command. Run plan to inspect data, then have your host agent author the plans. For a preset technical demo only, explicitly use --bootstrap or agent_mode:false.")
 
 
 def validate_brief(brief, profiles, report):
     schema = read_json(Path(__file__).parent / "schemas/analysis-brief.json")
     errors = [f"{list(e.path)}: {e.message}" for e in Draft202012Validator(schema).iter_errors(brief)]
+    if report.get("composition") == "bootstrap":
+        errors.append("Preset bootstrap reports cannot be submitted as agent-authored designs. Author the report from the analytical brief.")
     if errors:
         return {"check": "agent_analysis", "status": "failed", "errors": errors}
     columns = {p["name"]: {c["name"] for c in p["columns"]} for p in profiles}
@@ -35,7 +37,7 @@ def validate_brief(brief, profiles, report):
     for page in report["pages"]:
         signatures = []
         for visual in page["visuals"]:
-            if visual["type"] in {"slicer", "pageNavigator", "textbox", "actionButton"}:
+            if visual["type"] in {"slicer", "pageNavigator", "textbox", "actionButton", "shape", "image"}:
                 continue
             import json
             signatures.append(json.dumps({key: visual.get(key) for key in ("type", "roles", "filters")}, sort_keys=True))

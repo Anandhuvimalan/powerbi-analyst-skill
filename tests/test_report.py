@@ -63,7 +63,7 @@ def test_overlap_missing_binding_and_clipped_card_fail(report, model):
     bad["pages"][0]["visuals"][0]["roles"]["Data"][0]["name"] = "Missing"
     assert any("binding" in e for e in validate_report(bad, model)["errors"])
     bad["pages"][0]["visuals"][0]["position"]["height"] = 45
-    assert any("Card" in e for e in validate_report(bad, model)["errors"])
+    assert any("Card" in e for e in validate_report(bad, model)["warnings"])
 
 
 def test_pbir_resources_roles_navigation_and_drillthrough(tmp_path, model):

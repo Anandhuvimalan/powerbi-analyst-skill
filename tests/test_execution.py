@@ -19,7 +19,7 @@ class OfflineCLI:
 
 def request(tmp_path):
     (tmp_path / "data.csv").write_text("OrderId,Revenue,Cost,Region\n001,100,60,North\n002,200,90,South\n")
-    return {"project": "D.pbip", "sources": ["data.csv"], "business_goal": "Analyze revenue and profit by region"}
+    return {"agent_mode": False, "project": "D.pbip", "sources": ["data.csv"], "business_goal": "Analyze revenue and profit by region"}
 
 
 def test_end_to_end_build_and_deterministic_rerun(tmp_path):

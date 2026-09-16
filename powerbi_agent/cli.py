@@ -11,7 +11,7 @@ from .adapters import DesktopBridgeAdapter, ModelingMCPAdapter, ReportAuthoringA
 from .core import BuildError, write_json
 from .orchestrator import analyze_request, build, load_request, verify_runtime
 from .planning import plan_model
-from .report import plan_report
+from .bootstrap import plan_report
 from .transaction import recover
 
 
@@ -28,6 +28,7 @@ def parser():
         p.add_argument("--modeling", choices=["file", "mcp"])
         p.add_argument("--remote-schema", action="store_true")
         p.add_argument("--auto-open", action="store_true")
+        p.add_argument("--bootstrap", action="store_true", help="Explicit preset technical demo; not an agent-designed dashboard")
         if action == "plan":
             p.add_argument("--artifacts", type=Path, default=Path("output/plan"))
     sub.add_parser("doctor")
@@ -57,6 +58,8 @@ def main(argv=None):
                 request, base = {"project": args.project, "sources": args.data, "business_goal": args.goal}, Path.cwd()
             if args.output:
                 request["output"] = args.output
+            if args.bootstrap:
+                request["agent_mode"] = False
             if args.modeling:
                 request["modeling"] = {"mode": args.modeling}
             if args.remote_schema:
@@ -76,7 +79,13 @@ def main(argv=None):
                 model = plan_model(data, request["business_goal"])
                 write_json(args.artifacts / "profile.json", [d.profile for d in data])
                 write_json(args.artifacts / "model-plan.json", model)
-                write_json(args.artifacts / "report-plan.json", plan_report(model, request["business_goal"], request.get("brand")))
+                write_json(args.artifacts / "design-context.json", {
+                    "business_objective": request["business_goal"], "brand": request.get("brand", {}),
+                    "instruction": "Author analysis-brief.json and report-plan.json from these observations. Review the model scaffold. Every page element and style must be explicit; the renderer adds no header, navigation, KPI row or layout.",
+                    "schemas": {name: json.loads((Path(__file__).parent / "schemas" / (name + ".json")).read_text())
+                                for name in ("report-plan", "analysis-brief")}})
+                if args.bootstrap:
+                    write_json(args.artifacts / "bootstrap-report-plan.json", plan_report(model, request["business_goal"], request.get("brand")))
                 print(f"[PLAN] Artifacts saved in {args.artifacts}; no Power BI project was changed.")
         elif args.action == "doctor":
             desktop = DesktopBridgeAdapter()

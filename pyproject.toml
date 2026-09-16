@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "powerbi-autonomous-agent"
-version = "0.2.0"
+version = "0.3.0"
 description = "Execute the Power BI analyst skill into transactional PBIP projects"
 requires-python = ">=3.11"
 dependencies = ["jsonschema>=4.23,<5", "openpyxl>=3.1,<4", "mcp>=1.12,<2", "pillow>=11,<13"]

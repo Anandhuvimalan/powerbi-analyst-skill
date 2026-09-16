@@ -34,21 +34,26 @@ environment. No paid model or API key is bundled.
 ## How this avoids a repeated dashboard
 
 In skill-driven builds, the agent authors a source-backed analysis brief and both
-model and report plans. `agent_mode: true` rejects missing plans and checks source
+model and report plans. Agent mode is the default; it rejects missing plans and checks source
 evidence, page decisions and duplicate analytical visuals. The report follows the
 audience, grain and questions; there is no required page list, KPI row or chart
 trio. Similar needs can justify similar visuals. Originality and analytical
 quality still depend on the host agent's reasoning and review.
 
-The direct CLI also retains a conservative bootstrap mode for connectivity tests
-and simple examples. Running that alone is not the full agent workflow. The
+The renderer writes exactly the authored composition, including its headings,
+navigation, visual positions and formatting. It injects no layout or card style.
+The planner receives data and a model scaffold, without a preset report.
+
+The direct CLI retains an explicit `--bootstrap` mode (`agent_mode:false` in JSON)
+for connectivity tests and simple examples. Running that alone is not the full agent workflow. The
 original snippet workflow remains available when explicitly requested.
 
 ## Developer quick start and executable demo
 
 ![A real Power BI Desktop capture from the included fictitious sales demo](docs/images/demo-overview.png)
 
-This is one verification example. The skill directs the agent to author the
+This is the preset technical demo, not evidence of an agent-authored design.
+The skill directs the agent to author the
 analytical experience for each user's project rather than reuse this report.
 
 This repository now includes an executable **PBIP + TMDL + PBIR builder** beneath
@@ -87,8 +92,9 @@ proven equivalent groupings are collapsed to avoid redundant analytical pages.
 **Verification boundary:** file creation and offline TOM parsing do not execute M,
 refresh data, evaluate DAX, or render charts. Install/open Power BI Desktop for
 those checks. The build state records unverified runtime and visual checks
-explicitly. The standalone default planner is conservative; the original AI skill
-or a configured reasoning provider supplies advanced business-specific plans.
+explicitly. The original AI skill or a configured reasoning provider supplies
+business-specific plans. A standalone build without either fails with setup
+guidance instead of silently delivering a preset dashboard.
 
 - [Setup, commands and Desktop requirements](docs/setup.md)
 - [Architecture and plan contracts](docs/architecture.md)

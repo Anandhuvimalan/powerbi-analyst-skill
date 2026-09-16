@@ -2,13 +2,21 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object", "required": ["width", "height", "theme", "pages"], "additionalProperties": false,
   "properties": {
+    "composition": {"enum": ["authored", "bootstrap"]},
+    "settings": {"type": "object"}, "objects": {"type": "object"},
     "width": {"type": "number", "minimum": 320, "maximum": 7680}, "height": {"type": "number", "minimum": 240, "maximum": 4320},
     "design_rationale": {"type": "string"}, "theme": {"type": "object", "required": ["palette", "definition"], "properties": {"palette": {"type": "object"}, "definition": {"type": "object"}}},
     "pages": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["name", "title", "visuals"], "properties": {
       "name": {"type": "string"}, "title": {"type": "string"}, "subtitle": {"type": "string"}, "hidden": {"type": "boolean"}, "tooltip": {"type": "boolean"},
+      "width": {"type": "number", "minimum": 320, "maximum": 7680}, "height": {"type": "number", "minimum": 240, "maximum": 4320},
+      "background": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"}, "objects": {"type": "object"},
+      "display_option": {"enum": ["FitToPage", "FitToWidth", "ActualSize"]},
       "drillthrough": {"$ref": "#/$defs/binding"}, "filters": {"type": "array"}, "interactions": {"type": "array"},
       "visuals": {"type": "array", "items": {"type": "object", "required": ["type", "title", "question", "position"], "properties": {
         "type": {"type": "string"}, "title": {"type": "string"}, "question": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "pattern": "^[a-f0-9]{20}$"},
+        "layer": {"enum": ["background", "content"]}, "z_index": {"type": "number"}, "tab_order": {"type": "number", "minimum": 0},
+        "text": {"type": "string"}, "text_style": {"type": "object"},
         "position": {"type": "object", "required": ["x", "y", "width", "height"], "additionalProperties": false, "properties": {"x": {"type": "number"}, "y": {"type": "number"}, "width": {"type": "number", "exclusiveMinimum": 0}, "height": {"type": "number", "exclusiveMinimum": 0}}},
         "roles": {"type": "object", "additionalProperties": {"type": "array", "items": {"$ref": "#/$defs/binding"}}},
         "objects": {"type": "object"}, "container_objects": {"type": "object"}, "filters": {"type": "array"}, "sort": {"$ref": "#/$defs/binding"}, "descending": {"type": "boolean"}

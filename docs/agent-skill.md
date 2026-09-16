@@ -26,7 +26,7 @@ and permits file execution with those validation capabilities unavailable.
 
 The release ZIP is portable; do not flatten its folders. If only the small skill
 folder was installed from the GitHub source tree, setup uses Git to retrieve the
-matching `v0.2.0` repository into `.runtime`. Run setup again after upgrading the
+matching `v0.3.0` repository into `.runtime`. Run setup again after upgrading the
 skill. Close applications using its private environment before replacing files.
 
 Desktop installation and source credentials are managed through Power BI. See
@@ -81,7 +81,14 @@ missing. It cannot detect a dishonest explanation or guarantee business meaning.
 
 With `reasoning.command`, return `analysis_brief`, `model_plan` and `report_plan`.
 The provider receives the original skill and schemas. It must use source evidence
-and the user's objective; the supplied baseline is technical scaffolding only.
+and the user's objective. Only a model scaffold is supplied; there is no baseline
+report to copy. Agent mode is the default. Preset demos require `--bootstrap` or
+an explicit `agent_mode:false` in the request.
+
+Every on-canvas element is authored, including titles, annotations and navigation.
+The renderer imposes no top strip, chart arrangement, card styling or slicer mode.
+Choose the canvas size, reading order, typography, native formatting and theme
+together. See the skill's `references/project-design.md` for the full contract.
 
 ## Quality and verification
 

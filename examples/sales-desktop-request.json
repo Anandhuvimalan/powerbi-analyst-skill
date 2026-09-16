@@ -1,4 +1,5 @@
 {
+  "agent_mode": false,
   "project": "./PowerBI-AI-Starter.pbip",
   "output": "../output/AutonomousSales/AutonomousSales.pbip",
   "sources": ["./sales.csv"],

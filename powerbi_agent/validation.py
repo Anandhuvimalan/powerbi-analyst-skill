@@ -132,10 +132,16 @@ def validate_report(plan, model):
     for page in plan["pages"]:
         if not re.fullmatch(r"[a-f0-9]{20}|ReportSection[a-f0-9]{0,24}", page["name"]):
             errors.append("Page names must be stable PBIR identifiers")
-        if len(page["visuals"]) > 8:
+        check_names([v["name"] for v in page["visuals"] if v.get("name")], "visual", errors)
+        if sum(bool(v.get("roles")) for v in page["visuals"]) > 8:
             warnings.append(f"{page['title']}: more than eight data visuals may harm readability/performance")
         positions = []
         for visual in page["visuals"]:
+            background = visual.get("layer") == "background"
+            if background and (visual["type"] not in {"shape", "textbox", "image"} or visual.get("roles")):
+                errors.append("Only unbound decorative elements can use the background layer")
+            if (background and visual.get("z_index", -1000) >= 0) or (not background and visual.get("z_index", 1000) < 0):
+                errors.append("Background z_index must be negative; content z_index must be nonnegative")
             if not visual.get("question"):
                 errors.append(f"{visual['title']}: missing analytical question")
             p = visual["position"]
@@ -144,12 +150,14 @@ def validate_report(plan, model):
                 continue
             if min(p["x"], p["y"]) < 0 or min(p["width"], p["height"]) <= 0 or p["x"] + p["width"] > page.get("width", plan["width"]) or p["y"] + p["height"] > page.get("height", plan["height"]):
                 errors.append(f"Out-of-bounds visual: {visual['title']}")
-            for other, op in positions:
+            for other, op, other_background in positions:
+                if background or other_background:
+                    continue
                 if p["x"] < op["x"] + op["width"] and p["x"] + p["width"] > op["x"] and p["y"] < op["y"] + op["height"] and p["y"] + p["height"] > op["y"]:
                     errors.append(f"Visual overlap: {visual['title']} / {other}")
-            positions.append((visual["title"], p))
-            if visual["type"] == "cardVisual" and (p["height"] < 120 or p["width"] / max(1, len(visual["roles"].get("Data", []))) < 240):
-                errors.append(f"Card has insufficient space for readable values: {visual['title']}")
+            positions.append((visual["title"], p, background))
+            if visual["type"] == "cardVisual" and (p["height"] < 80 or p["width"] < 120):
+                warnings.append(f"Card may clip at this size; review chosen typography in Desktop: {visual['title']}")
             for bindings in visual.get("roles", {}).values():
                 for b in bindings:
                     found = (b["table"], b["name"]) in measures if b.get("kind") == "Measure" else b["name"] in cols.get(b["table"], {})

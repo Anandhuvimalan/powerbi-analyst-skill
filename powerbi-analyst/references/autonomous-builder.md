@@ -13,7 +13,7 @@ mode but does not install the executor. Run `powerbi-agent doctor` to discover i
    rows are not written into the profiling artifact.
 2. Apply `data-study.md`, `power-query.md`, `tmdl-relationships.md`,
    `tmdl-measures.md`, `visualization-blueprint.md` and `governance.md` where
-   relevant. Improve `model-plan.json` and `report-plan.json` with the business
+   relevant. Review `model-plan.json` and author a fresh `report-plan.json` with the business
    meaning, correct grain, advanced measures, source-specific preparation, useful
    hierarchies, report questions, and visual design. Do not mistake generated
    column-name heuristics for verified business facts.
@@ -22,8 +22,8 @@ mode but does not install the executor. Run `powerbi-agent doctor` to discover i
    Build writes actual tables/partitions/relationships/measures and bound visuals.
    The executor validates plans, stages files, validates report definitions,
    checkpoints the target and publishes only after validation.
-   For skill-driven builds, also author `analysis_brief` using
-   `project-design.md` and set `agent_mode: true`. A bare bootstrap CLI build is
+   Also author `analysis_brief` using
+   `project-design.md`. Agent mode is the default. An explicit `--bootstrap` build is
    only a technical example; do not present it as the host agent's design work.
 4. Prefer `modeling.mode: "mcp"` when Microsoft's Modeling MCP is installed.
    It loads the staged model, creates measures through MCP and exports canonical
@@ -44,7 +44,8 @@ mode but does not install the executor. Run `powerbi-agent doctor` to discover i
    vision reviewer, report visual QA as unavailable rather than inventing scores.
 
 For a standalone autonomous AI run, `reasoning.command` receives the original
-skill, structured data profiles and baseline plans. It must return both complete
+skill, structured data profiles, brand and a provisional model scaffold. No report
+template is supplied. It must return both complete
 plans and an analysis brief as JSON. A host agent can instead perform step 2
 itself. No particular AI
 vendor, API key or cloud upload is silently selected.

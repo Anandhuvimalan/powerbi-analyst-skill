@@ -29,7 +29,8 @@ flowchart TD
 | `reasoning.py` | Original skill loading and configured AI planner protocol |
 | `agent_workflow.py` | Agent-mode requirements, source-backed analysis briefs and page-decision traceability |
 | `model.py` | Native M connectors, derived M queries, serialized TMDL tables, columns, measures, relationships, hierarchies, expressions, groups, roles |
-| `report.py` | Dynamic page planning, visual bindings, grid geometry, human-readable labels, themes, slicers, drillthrough, native navigation |
+| `report.py` | Compile exactly authored page elements, bindings, native formatting, themes and drillthrough into PBIR |
+| `bootstrap.py` | Explicit preset technical demo; never the agent's default report designer |
 | `adapters.py` | Protocol interfaces, installed Microsoft CLI discovery, MCP schema checking, Desktop bridge, Store install discovery |
 | `validation.py` | Plan schemas, names/types/references, key evidence, filter graph ambiguity, layout, card sizing, theme contrast, CLI diagnostics |
 | `runtime.py` | Independent source aggregation, filter/time-context test queries, live result comparison |
@@ -40,10 +41,10 @@ flowchart TD
 
 ## Planning versus execution
 
-`plan` emits structured analysis and plans and explicitly says the project was not
+`plan` emits profiles, a model scaffold and design context and explicitly says the project was not
 changed. `build` validates and applies them to artifact folders, then publishes
-the `.pbip`. The default planner runs without a language model, so it deliberately
-limits semantic inference. Advanced reasoning comes from the original skill in
+the `.pbip`. Builds default to requiring authored plans or an AI provider. The
+model scaffold deliberately limits semantic inference. Advanced reasoning comes from the original skill in
 a host agent or `reasoning.command`; it can provide arbitrary justified M and DAX.
 
 The model/report plans are the stable internal contract. Their JSON schemas are
@@ -66,13 +67,20 @@ Offline connections support metadata authoring, not data refresh or DAX executio
 
 ## Report authoring scope
 
-The baseline selects cards, line/bar charts, tables, slicers and native page
+The explicitly selected bootstrap demo uses cards, line/bar charts, tables, slicers and native page
 navigation. Long date ranges use monthly rather than noisy daily trends. Page
 count depends on relevant fields and requested analysis. Entity attributes with
 proven identical groupings share one analytical cut; equal cardinality alone is
 not treated as proof. Plans can select other
 Microsoft-catalog visuals through exact role bindings and native formatting.
 Schema validation catches unsupported roles/properties before publication.
+
+The report writer injects no headings, subtitle, navigation, chart geometry or
+per-type formatting. The agent owns every element, typography, canvas size and
+theme. Decorative background layers may overlap content; content overlap remains
+an error. Compact cards receive readability warnings, not a forced preset size.
+Native objects supply advanced formatting and explicit textboxes supply headings
+and annotations. The reasoning payload contains no baseline report.
 
 Drillthrough fields include both filter and page binding definitions. Tooltip
 pages can be authored by plans, with native visual tooltip bindings in

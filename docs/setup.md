@@ -35,8 +35,16 @@ packages deliberately and rerun integration tests when preview contracts change.
 ## Build a new project
 
 ```powershell
-powerbi-agent build --project ./PowerBI-AI-Starter.pbip --data ./sales.xlsx --goal "Analyze revenue, profitability, products and regional trends"
+powerbi-agent plan --project ./PowerBI-AI-Starter.pbip --data ./sales.xlsx --goal "Analyze revenue, profitability, products and regional trends"
 ```
+
+Have the host agent inspect the profiles and design context, review the model
+scaffold and author the analysis brief and report plan. Then run
+`powerbi-agent build request.json` with those three artifact paths, as shown in
+[the agent workflow](agent-skill.md). Builds require these plans or a configured
+reasoning provider by default. Direct source/goal flags alone cannot supply AI
+reasoning. `build --bootstrap ...` explicitly opts into the preset technical demo;
+the sales example requests use `agent_mode:false` for that purpose.
 
 The target may be absent or essentially blank. An existing unmanaged analytical
 model/report is preserved and rejected as an overwrite target. Use `--output`
@@ -98,7 +106,8 @@ For the portable agent skill and a workflow intended for end users, start with
 bootstrap example commands above deliberately remain available outside that mode.
 
 Run `powerbi-agent plan ...` to obtain `profile.json`, `model-plan.json`, and
-`report-plan.json`. An agent uses the original six guides to refine these plans,
+`design-context.json`. An agent uses the original six guides to author the report
+and analysis brief and review the model,
 then supplies their paths in a build request. This supports arbitrary advanced
 DAX and M rather than a closed catalog of measures.
 
@@ -112,8 +121,9 @@ A standalone AI provider can be configured with:
 ```
 
 The builder appends one argument: the absolute path of a JSON request containing
-the original skill, profiles, source descriptors and baseline plans. The command
-must return `{"model_plan": {...}, "report_plan": {...}}` on stdout. Authentication
+the original skill, profiles, source descriptors, brand and a model scaffold. No
+baseline report is supplied. The command must return `{"analysis_brief": {...},
+"model_plan": {...}, "report_plan": {...}}` on stdout. Authentication
 and AI-provider choice belong to the configured command. No cloud provider or
 dataset upload is selected by default. This adapter is an integration contract;
 the repository does not bundle a paid LLM service or pretend its heuristics are one.

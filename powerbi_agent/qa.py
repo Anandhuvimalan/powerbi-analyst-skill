@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .adapters import run_json
 from .core import BuildError, write_json
+from .report import literal
 from .validation import enforce, validate_report
 
 DIMENSIONS = ["layout", "readability", "visual_hierarchy", "color_usage", "data_storytelling"]
@@ -66,6 +67,14 @@ def visual_qa(state, project, report_plan, model_plan, desktop, reviewer, rerend
             for key in ["position", "title"]:
                 if key in patch:
                     page["visuals"][index][key] = patch[key]
+            if "title" in patch:
+                visual = page["visuals"][index]
+                if visual["type"] == "textbox" and "text" in visual:
+                    visual["text"] = patch["title"]
+                else:
+                    title = visual.setdefault("container_objects", {}).setdefault("title", [{"properties": {}}])
+                    for entry in title:
+                        entry.setdefault("properties", {})["text"] = literal(patch["title"])
         enforce(validate_report(candidate, model_plan))
         rerender(candidate)  # Each refinement gets its own staged validation and checkpoint.
         current = candidate

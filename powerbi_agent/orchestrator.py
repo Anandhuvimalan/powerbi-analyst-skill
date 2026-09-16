@@ -15,7 +15,8 @@ from .core import BuildError, ProjectState, read_json, within, write_json
 from .model import TmdlWriter, dq
 from .planning import plan_model
 from .qa import CommandVisionReviewer, visual_qa
-from .report import PbirWriter, plan_report
+from .report import PbirWriter
+from .bootstrap import plan_report
 from .reasoning import CommandReasoningAdapter
 from .runtime import assess_results, source_expectations
 from .transaction import ProjectTransaction
@@ -111,7 +112,7 @@ def build(request: dict, base=Path.cwd(), *, model_adapter=None, report_adapter=
                 state.log("PLAN", "Applying the original knowledge skill through the configured AI planner")
                 ai = CommandReasoningAdapter(config["command"], config.get("knowledge_root"))
                 result = ai.plan(datasets, request["business_goal"], state.model_plan,
-                    plan_report(state.model_plan, request["business_goal"], request.get("brand")), tx.run)
+                    None, tx.run, brand=request.get("brand"))
                 state.model_plan, generated_report = result["model_plan"], result["report_plan"]
                 state.analysis_brief = result.get("analysis_brief", {})
             state.domain = state.model_plan.get("domain", "general")
@@ -124,7 +125,7 @@ def build(request: dict, base=Path.cwd(), *, model_adapter=None, report_adapter=
             result = validator.report(state.report_plan, state.model_plan)
             state.validation_results.append(result)
             enforce(result)
-            if request.get("agent_mode") or state.analysis_brief:
+            if request.get("agent_mode", True) or state.analysis_brief:
                 result = validate_brief(state.analysis_brief, state.dataset_profile, state.report_plan)
                 state.validation_results.append(result)
                 enforce(result)

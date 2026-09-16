@@ -46,10 +46,29 @@ consistently within the project. Do not vary colors and geometry merely to look
 different. Choose brand colors if supplied, otherwise a restrained palette.
 Preserve semantic colors and verify contrast and rendered text.
 
-The current writer adds a title/subtitle and optional page navigator to ordinary
-pages. Reserve the top 144 logical pixels for that chrome; top-right filters may
-occupy its free area. Data visuals usually begin at y=160. Tooltip pages omit
-this chrome. Layout can vary below it; respect the actual page dimensions.
+The writer emits exactly the authored page elements. There is no reserved header
+area, mandatory navigation strip, KPI row, card size or chart grid. Use the whole
+canvas. A page's `title` is its tab label, not an automatic heading. Add a
+`textbox` with `text` and `text_style` if an on-canvas heading or annotation helps.
+Navigation is an explicit `pageNavigator` or other supported native element.
+
+Set top-level canvas dimensions and optional per-page `width`/`height`,
+`background`, `display_option` and native `objects`. Visuals accept exact
+`position`, `objects`, `container_objects`, `z_index` and `tab_order`. Typography,
+card orientation, label units, slicer style and borders come from those authored
+objects or the authored theme. Discover the native property names from the
+installed Microsoft catalog. `text_style` uses native text-run properties such
+as `fontFamily`, `fontSize` (e.g. `22pt`) and `color`.
+
+For intentional section backgrounds, use an unbound shape/textbox/image with
+`layer: "background"` and a negative `z_index`. Content stays at nonnegative z.
+Backgrounds may sit beneath content; overlapping content visuals still fail
+validation. Review custom text/background combinations visually: a palette-level
+contrast check does not inspect every native formatting override.
+
+Do not leave everything to Power BI defaults. Author formatting deliberately and
+inspect it in Desktop where available. Raw properties are checked by Microsoft's
+report validator; static layout checks cannot prove that labels fit when rendered.
 
 ## Analysis-brief contract
 
