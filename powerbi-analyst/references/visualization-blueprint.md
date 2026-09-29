@@ -38,6 +38,10 @@ Write each visual as:
 
 ## Slicers
 
+Placement, slicer modes, minimum sizes and sync groups are specified in
+[visual-design-system.md](visual-design-system.md) §4. Design filters as part of
+the layout, not as leftovers.
+
 For each slicer the audience actually needs, specify: field, slicer type
 (dropdown / list / between for dates), default selection, and sync scope across
 pages. Don't add slicers for fields nobody will filter on.

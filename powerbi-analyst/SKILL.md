@@ -51,6 +51,9 @@ original references where needed:
 - [Relationships](references/tmdl-relationships.md): keys, cardinality and filters.
 - [Advanced DAX](references/tmdl-measures.md): measures and filter context.
 - [Visualization](references/visualization-blueprint.md): questions and visual purpose.
+- [Visual design system](references/visual-design-system.md): **required before any
+  report plan**: project-derived tokens, background panels, visual formatting,
+  slicers and filters.
 - [Governance](references/governance.md): validation and assumptions.
 
 Author `analysis-brief.json`, `model-plan.json` and `report-plan.json` yourself
@@ -58,6 +61,15 @@ from the actual evidence. Choose pages, visual families, density, hierarchy,
 typography and colors for the audience and decisions. Do not just rename sales
 pages or recolor the sample. Do not randomize layout for novelty: equally useful
 requirements can justify similar analytical patterns.
+
+Derive `design_system` from this project's brand, audience, viewing context and
+data density, then build each page in layers: tinted canvas, background-layer
+panel shapes (with `style.fill`, z >= 0), then content inset on one grid. Style
+every visual through `style_defaults`/`style` (titles, card outlines, headers,
+padding) and every slicer through `slicer` (mode, size, sync group). Agent mode
+rejects a missing design system, the preset palette, unfilled or negative-z
+shapes, undecided card outlines, slicers without a chosen mode, and multi-visual
+pages with no panels or card treatment.
 
 Start the report with an empty canvas. Author every visible element: headings,
 annotations, navigation, filters, charts and metric displays. The executor adds
@@ -99,8 +111,9 @@ revise plans instead of returning snippets as the completed project.
 
 When Desktop is available, open/load the generated model and verify DAX against
 source-derived expectations. Capture and inspect actual report pages through the
-bridge. Fix overlap, clipping, weak hierarchy, incorrect formatting and redundant
-analysis; validate refinements before reload. Use at most three visual iterations
+bridge. Fix missing panels, boxes inside boxes, auto-generated or truncated titles,
+rotated axis labels, unformatted numbers, invisible slicer headers, unstyled
+navigation, overlap, clipping, weak hierarchy and redundant analysis; validate refinements before reload. Use at most three visual iterations
 unless configured otherwise. The host agent can review images directly; an
 unattended process needs `qa.reviewer_command`. Never invent screenshots or scores.
 

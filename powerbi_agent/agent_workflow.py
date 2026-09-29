@@ -5,6 +5,41 @@ from pathlib import Path
 from jsonschema import Draft202012Validator
 
 from .core import BuildError, read_json
+from .report import DECORATIVE, SLICERS, effective_style
+
+# The bootstrap demo's palette; an authored project must derive its own.
+PRESET_CANVAS = "#F2F5F7"
+PRESET_ACCENTS = {"#196A83", "#6550A3", "#215A63", "#4457A8", "#285D85"}
+
+
+def design_system_errors(report):
+    """The report must carry a project-derived design system and visibly group its content."""
+    errors = []
+    system = report.get("design_system")
+    if not system:
+        return ["Author report_plan.design_system (concept, derived_from, tokens, typography, grid, filter_strategy) from this project before laying out pages. See references/visual-design-system.md."]
+    palette = {k: str(v).upper() for k, v in report["theme"]["palette"].items()}
+    tokens = {k: str(v).upper() for k, v in system["tokens"].items()}
+    if palette.get("canvas") == PRESET_CANVAS and palette.get("accent") in PRESET_ACCENTS or tokens.get("accent") in PRESET_ACCENTS and tokens.get("canvas") == PRESET_CANVAS:
+        errors.append("The palette is the preset demo palette. Derive tokens from the project's brand, domain and audience.")
+    themed_cards = any(entry.get("background", [{}])[0].get("show") for entry in report["theme"]["definition"].get("visualStyles", {}).get("*", {}).values())
+    for page in report["pages"]:
+        if page.get("hidden") or page.get("tooltip") or system.get("flat_layout_reason"):
+            continue
+        data = [v for v in page["visuals"] if v["type"] not in DECORATIVE and v["type"] not in SLICERS]
+        if len(data) < 2:
+            continue
+        panels = [v for v in page["visuals"] if v.get("layer") == "background" and v["type"] in {"shape", "basicShape"}]
+        def card(visual):
+            authored = visual.get("container_objects", {}).get("background")
+            if authored:
+                return authored[0].get("properties", {}).get("show") != {"expr": {"Literal": {"Value": "false"}}}
+            background = effective_style(visual, report).get("background")
+            return bool(background) or background is None and themed_cards
+        cards = all(card(v) for v in data)
+        if not panels and not cards:
+            errors.append(f"Page {page['title']}: content floats on the bare canvas. Group it with background-layer panel shapes or a card treatment (style.background), or state design_system.flat_layout_reason.")
+    return errors
 
 
 def require_agent_inputs(request):
@@ -20,6 +55,7 @@ def validate_brief(brief, profiles, report):
         errors.append("Preset bootstrap reports cannot be submitted as agent-authored designs. Author the report from the analytical brief.")
     if errors:
         return {"check": "agent_analysis", "status": "failed", "errors": errors}
+    errors.extend(design_system_errors(report))
     columns = {p["name"]: {c["name"] for c in p["columns"]} for p in profiles}
     for grain in brief["grain"]:
         if grain["table"] not in columns:

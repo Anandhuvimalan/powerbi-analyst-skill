@@ -7,7 +7,43 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from .core import BuildError, read_json
-from .report import contrast
+from .report import DECORATIVE, INTEGER_PROPERTIES, SLICERS, contrast, effective_style, z_order
+
+
+def design_errors(visual, plan):
+    """Catch designs that Power BI would silently render with its own defaults."""
+    errors, kind, title = [], visual["type"], visual["title"]
+    style = effective_style(visual, plan)
+    objects = visual.get("objects", {})
+    if kind in {"shape", "basicShape"}:
+        for entry in objects.get("shape", []):
+            for prop, value in entry.get("properties", {}).items():
+                encoded = value.get("expr", {}).get("Literal", {}).get("Value", "") if isinstance(value, dict) else ""
+                if prop in INTEGER_PROPERTIES["shape"] and not encoded.endswith("L"):
+                    errors.append(f"{title}: shape.{prop} is an integer property; encode it as '12L' (or use style.corner)")
+        if not style.get("fill") and "fill" not in objects:
+            errors.append(f"{title}: shape has no authored fill; Power BI would draw its default theme-coloured block. Set style.fill (and style.outline)")
+    if kind in SLICERS:
+        if not visual.get("roles"):
+            errors.append(f"{title}: slicer has no field binding")
+        if kind == "slicer" and "mode" not in visual.get("slicer", {}) and "data" not in objects:
+            errors.append(f"{title}: choose the slicer style deliberately (slicer.mode: Dropdown, HorizontalList, Between, Relative...)")
+        # Mirrors Microsoft's PBIR_SLICER_HEIGHT_BELOW_FLOOR: header 28 + selector 32 + default padding 8/8.
+        if visual.get("slicer", {}).get("mode") == "Dropdown":
+            floor = (28 if visual["slicer"].get("show_header", True) else 0) + 32 + 16
+            if visual["position"]["height"] < floor:
+                errors.append(f"{title}: dropdown slicer needs at least {floor}px height or its header/selector is clipped")
+    if kind == "textbox" and visual.get("text_style", {}).get("fontSize"):
+        points = float(str(visual["text_style"]["fontSize"]).rstrip("pt"))
+        floor = max(18, -(-points * 25 // 16)) + 16
+        if visual["position"]["height"] < floor:
+            errors.append(f"{title}: {points:g}pt text needs at least {floor:g}px height (with default padding) to avoid a scrollbar")
+    if kind == "cardVisual" and "card_outline" not in style and "outline" not in objects:
+        errors.append(f"{title}: decide the card's inner outline (style.card_outline: false removes Power BI's default grey box)")
+    themed = bool(plan["theme"]["definition"].get("visualStyles"))
+    if kind not in DECORATIVE and not (themed or style or visual.get("container_objects")):
+        errors.append(f"{title}: no authored container design (style, style_defaults, container_objects or theme visualStyles); Power BI defaults would become the design")
+    return errors
 
 
 def plan_schema(plan, name):
@@ -129,6 +165,7 @@ def validate_report(plan, model):
         errors.append("Report requires a visible page")
     cols = {t["name"]: {c["name"] for c in t["columns"]} for t in model["tables"]}
     measures = {(m["table"], m["name"]) for m in model["measures"]}
+    slicer_fields = {}
     for page in plan["pages"]:
         if not re.fullmatch(r"[a-f0-9]{20}|ReportSection[a-f0-9]{0,24}", page["name"]):
             errors.append("Page names must be stable PBIR identifiers")
@@ -136,12 +173,18 @@ def validate_report(plan, model):
         if sum(bool(v.get("roles")) for v in page["visuals"]) > 8:
             warnings.append(f"{page['title']}: more than eight data visuals may harm readability/performance")
         positions = []
+        stack = [(z_order(v, i), v.get("layer") == "background", v["title"]) for i, v in enumerate(page["visuals"], 1)]
+        for z, _, title in stack:
+            if z < 0:
+                errors.append(f"{title}: z_index {z} is negative; Power BI Desktop does not render visuals with negative z")
+        content = [z for z, background, _ in stack if not background]
+        for z, background, title in stack:
+            if background and content and z >= min(content):
+                errors.append(f"{title}: background element (z {z}) must stack below every content visual (lowest content z {min(content)})")
         for visual in page["visuals"]:
             background = visual.get("layer") == "background"
             if background and (visual["type"] not in {"shape", "textbox", "image"} or visual.get("roles")):
                 errors.append("Only unbound decorative elements can use the background layer")
-            if (background and visual.get("z_index", -1000) >= 0) or (not background and visual.get("z_index", 1000) < 0):
-                errors.append("Background z_index must be negative; content z_index must be nonnegative")
             if not visual.get("question"):
                 errors.append(f"{visual['title']}: missing analytical question")
             p = visual["position"]
@@ -165,10 +208,21 @@ def validate_report(plan, model):
                         errors.append(f"Missing visual binding {b['table']}.{b['name']}")
             if visual.get("tooltip_page") and visual["tooltip_page"] not in names:
                 errors.append("Missing tooltip page")
+            errors.extend(design_errors(visual, plan))
+        slicer_fields[page["name"]] = {json.dumps(b, sort_keys=True) for v in page["visuals"] if v["type"] in SLICERS
+            for bs in v.get("roles", {}).values() for b in bs if not v.get("slicer", {}).get("sync_group")}
         if page.get("drillthrough"):
             b = page["drillthrough"]
             if b["name"] not in cols.get(b["table"], {}):
                 errors.append("Missing drillthrough field")
+    visible = [p for p in plan["pages"] if not p.get("hidden") and not p.get("tooltip")]
+    navigators = {"pageNavigator", "actionButton", "bookmarkNavigator"}
+    if len(visible) > 1 and not any(v["type"] in navigators for p in visible for v in p["visuals"]):
+        warnings.append("Multi-page report has no on-canvas navigation (pageNavigator/actionButton); users rely on tabs only")
+    repeated = Counter(f for fields in slicer_fields.values() for f in fields)
+    for field_key, count in repeated.items():
+        if count > 1:
+            warnings.append(f"Slicer on {json.loads(field_key)['name']} appears on {count} pages without slicer.sync_group; selections will not carry across pages")
     palette = plan["theme"]["palette"]
     if contrast(palette["ink"], palette["surface"]) < 4.5 or contrast(palette["muted"], palette["canvas"]) < 4.5:
         errors.append("Theme text contrast is below 4.5:1")

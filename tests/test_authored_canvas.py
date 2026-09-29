@@ -27,7 +27,7 @@ def test_full_canvas_and_styles_are_owned_by_author(tmp_path, report, model):
         element("textbox", "Editorial heading", 0, 0, 700, 75, text="A decision, not a generic overview",
                 text_style={"fontFamily": "Georgia", "fontSize": "26pt", "color": "#182B3A"}),
         element("cardVisual", "Single compact metric", 730, 0, 230, 90,
-                roles={"Data": [metric]}, objects=value_style, z_index=7, tab_order=2),
+                roles={"Data": [metric]}, objects=value_style, style={"card_outline": False}, z_index=7, tab_order=2),
         element("tableEx", "Decision evidence", 0, 100, 960, 800, roles={"Values": [metric]})])
     plan["settings"] = {"useEnhancedTooltips": True}
     plan["pages"][0]["background"] = "#FFFDF7"
@@ -38,8 +38,8 @@ def test_full_canvas_and_styles_are_owned_by_author(tmp_path, report, model):
     assert not any(v["visual"]["visualType"] == "pageNavigator" for v in visuals)
     card = next(v for v in visuals if v["visual"]["visualType"] == "cardVisual")
     assert card["position"] == {"x": 730, "y": 0, "width": 230, "height": 90, "z": 7, "tabOrder": 2}
-    assert card["visual"]["objects"] == value_style
-    assert "visualContainerObjects" not in card["visual"]
+    assert card["visual"]["objects"] == {**value_style, "outline": [{"selector": {"id": "default"}, "properties": {"show": literal(False)}}]}
+    assert card["visual"]["visualContainerObjects"] == {"title": [{"properties": {"show": literal(True), "text": literal("Single compact metric")}}]}
     heading = next(v for v in visuals if v["visual"]["visualType"] == "textbox")
     assert "query" not in heading["visual"]
     assert heading["visual"]["objects"]["general"][0]["properties"]["paragraphs"][0]["textRuns"][0]["textStyle"]["fontFamily"] == "Georgia"
@@ -61,6 +61,8 @@ def test_background_layers_allow_grouping_but_never_hide_data_overlap(report, mo
     plan = canvas(report, [
         element("shape", "Section background", 0, 0, 960, 900, layer="background"),
         element("textbox", "Title", 20, 20, 400, 60, text="Evidence")])
+    assert any("no authored fill" in e for e in validate_report(plan, model)["errors"])
+    plan["pages"][0]["visuals"][0]["style"] = {"fill": "#FFFFFF", "outline": False}
     assert validate_report(plan, model)["status"] == "passed"
     plan["pages"][0]["visuals"].append(element("textbox", "Overlapping text", 20, 20, 400, 60))
     assert any("overlap" in e for e in validate_report(plan, model)["errors"])
@@ -100,3 +102,103 @@ def test_reasoner_gets_evidence_and_brand_without_seed_design(tmp_path, model, r
 def test_bootstrap_is_rejected_by_agent_review(report, sales):
     result = validate_brief({}, [sales.profile], report)
     assert any("bootstrap" in e for e in result["errors"])
+
+
+def test_authored_title_style_and_panel_compile_to_native_objects(tmp_path, report, model):
+    metric = report["pages"][0]["visuals"][0]["roles"]["Data"][0]
+    plan = canvas(report, [
+        element("shape", "Revenue panel", 0, 0, 960, 900, layer="background",
+                style={"fill": "#FFFFFF", "outline": "#E4E0D8", "outline_width": 1, "shape": "rectangleRounded", "corner": 14}),
+        element("clusteredBarChart", "Revenue by region", 16, 16, 928, 868, roles={"Values": [metric]},
+                subtitle="Sorted by revenue", style={"background": False, "title_color": "#2B2118", "title_size": 13})])
+    plan["style_defaults"] = {"*": {"header_icons": False, "padding": 8}}
+    assert validate_report(plan, model)["status"] == "passed"
+    PbirWriter().apply(tmp_path, "Model.SemanticModel", plan)
+    visuals = {v["visual"]["visualType"]: v["visual"] for v in (read_json(p) for p in tmp_path.rglob("visual.json"))}
+    shape = visuals["shape"]["objects"]
+    assert shape["shape"][0]["properties"]["roundEdge"] == {"expr": {"Literal": {"Value": "14L"}}}
+    assert shape["fill"][0]["properties"]["fillColor"] == color("#FFFFFF")
+    assert shape["outline"][0]["properties"]["lineColor"] == color("#E4E0D8")
+    assert "title" not in visuals["shape"].get("visualContainerObjects", {})
+    chart = visuals["clusteredBarChart"]["visualContainerObjects"]
+    assert chart["title"][0]["properties"]["text"] == literal("Revenue by region")
+    assert chart["title"][0]["properties"]["fontColor"] == color("#2B2118")
+    assert chart["subTitle"][0]["properties"]["text"] == literal("Sorted by revenue")
+    assert chart["background"] == [{"properties": {"show": literal(False)}}]
+    assert chart["visualHeader"] == [{"properties": {"show": literal(False)}}]
+    assert chart["padding"][0]["properties"]["left"] == literal(8)
+
+
+def test_double_encoded_integer_shape_property_is_rejected(report, model):
+    bad = {"shape": [{"selector": {"id": "default"}, "properties": {"roundEdge": literal(12)}}],
+           "fill": [{"selector": {"id": "default"}, "properties": {"fillColor": color("#FFFFFF")}}]}
+    plan = canvas(report, [element("shape", "Panel", 0, 0, 960, 900, layer="background", objects=bad)])
+    assert any("integer property" in e for e in validate_report(plan, model)["errors"])
+
+
+def test_slicers_need_a_chosen_style_and_can_sync(tmp_path, report, model):
+    region = {"table": "Sales", "name": "Region"}
+    slicer = element("slicer", "Region", 0, 0, 240, 76, roles={"Values": [region]})
+    plan = canvas(report, [slicer])
+    assert any("slicer style" in e for e in validate_report(plan, model)["errors"])
+    slicer["slicer"] = {"mode": "Dropdown", "single_select": False, "select_all": True, "sync_group": "region"}
+    slicer["style"] = {"title_color": "#2B2118"}
+    assert validate_report(plan, model)["status"] == "passed"
+    PbirWriter().apply(tmp_path, "Model.SemanticModel", plan)
+    visual = read_json(next(tmp_path.rglob("visual.json")))["visual"]
+    assert visual["objects"]["data"] == [{"properties": {"mode": literal("Dropdown")}}]
+    assert visual["objects"]["header"][0]["properties"]["text"] == literal("Region")
+    assert visual["objects"]["header"][0]["properties"]["fontColor"] == color("#2B2118")
+    assert visual["objects"]["selection"][0]["properties"]["selectAllCheckboxEnabled"] == literal(True)
+    assert visual["visualContainerObjects"]["title"] == [{"properties": {"show": literal(False)}}]
+    assert visual["syncGroup"] == {"groupName": "region", "fieldChanges": True, "filterChanges": True}
+
+
+def test_unsynced_repeated_slicers_and_missing_navigation_are_flagged(report, model):
+    region = {"table": "Sales", "name": "Region"}
+    plan = canvas(report, [element("slicer", "Region", 0, 0, 240, 60, roles={"Values": [region]}, slicer={"mode": "Dropdown"})])
+    second = deepcopy(plan["pages"][0])
+    second["name"] = identity("second")
+    plan["pages"].append(second)
+    warnings = validate_report(plan, model)["warnings"]
+    assert any("sync_group" in w for w in warnings)
+    assert any("navigation" in w for w in warnings)
+
+
+def test_undesigned_data_visual_is_rejected(report, model):
+    metric = report["pages"][0]["visuals"][0]["roles"]["Data"][0]
+    plan = canvas(report, [element("tableEx", "Evidence", 0, 0, 960, 900, roles={"Values": [metric]})])
+    plan["theme"]["definition"].pop("visualStyles")
+    assert any("no authored container design" in e for e in validate_report(plan, model)["errors"])
+    plan["style_defaults"] = {"*": {"background": "#FFFFFF", "radius": 10}}
+    assert validate_report(plan, model)["status"] == "passed"
+
+
+def test_background_layers_render_at_nonnegative_z_below_content(tmp_path, report, model):
+    plan = canvas(report, [
+        element("textbox", "Title", 20, 20, 400, 60, text="Evidence"),
+        element("shape", "Band", 0, 0, 960, 120, layer="background", style={"fill": "#2B2118", "outline": False})])
+    assert validate_report(plan, model)["status"] == "passed"
+    PbirWriter().apply(tmp_path, "Model.SemanticModel", plan)
+    z = {v["visual"]["visualType"]: v["position"]["z"] for v in (read_json(p) for p in tmp_path.rglob("visual.json"))}
+    assert 0 <= z["shape"] < z["textbox"]
+    plan["pages"][0]["visuals"][1]["z_index"] = -1000
+    assert any("negative" in e for e in validate_report(plan, model)["errors"])
+    plan["pages"][0]["visuals"][1]["z_index"] = 5000
+    assert any("stack below" in e for e in validate_report(plan, model)["errors"])
+
+
+def test_cards_must_decide_their_inner_outline(report, model):
+    metric = report["pages"][0]["visuals"][0]["roles"]["Data"][0]
+    plan = canvas(report, [element("cardVisual", "Revenue", 0, 0, 300, 120, roles={"Data": [metric]})])
+    assert any("inner outline" in e for e in validate_report(plan, model)["errors"])
+    plan["style_defaults"] = {"cardVisual": {"card_outline": False}}
+    assert validate_report(plan, model)["status"] == "passed"
+
+
+def test_field_label_becomes_display_name(tmp_path, report, model):
+    plan = canvas(report, [element("tableEx", "Products", 0, 0, 960, 900,
+        roles={"Values": [{"table": "Sales", "name": "ProductName", "label": "Product"}]})])
+    PbirWriter().apply(tmp_path, "Model.SemanticModel", plan)
+    projection = read_json(next(tmp_path.rglob("visual.json")))["visual"]["query"]["queryState"]["Values"]["projections"][0]
+    assert projection["displayName"] == "Product"

@@ -60,10 +60,12 @@ objects or the authored theme. Discover the native property names from the
 installed Microsoft catalog. `text_style` uses native text-run properties such
 as `fontFamily`, `fontSize` (e.g. `22pt`) and `color`.
 
-For intentional section backgrounds, use an unbound shape/textbox/image with
-`layer: "background"` and a negative `z_index`. Content stays at nonnegative z.
+For section backgrounds, use an unbound shape/textbox/image with
+`layer: "background"` and a `style.fill`; omit `z_index` so it stacks at z >= 0
+below content. Never use a negative z: Power BI Desktop does not draw it.
 Backgrounds may sit beneath content; overlapping content visuals still fail
-validation. Review custom text/background combinations visually: a palette-level
+validation. The full canvas, visual and filter procedure is in
+[visual-design-system.md](visual-design-system.md). Review custom text/background combinations visually: a palette-level
 contrast check does not inspect every native formatting override.
 
 Do not leave everything to Power BI defaults. Author formatting deliberately and

@@ -26,7 +26,7 @@ and permits file execution with those validation capabilities unavailable.
 
 The release ZIP is portable; do not flatten its folders. If only the small skill
 folder was installed from the GitHub source tree, setup uses Git to retrieve the
-matching `v0.3.0` repository into `.runtime`. Run setup again after upgrading the
+matching `v0.4.0` repository into `.runtime`. Run setup again after upgrading the
 skill. Close applications using its private environment before replacing files.
 
 Desktop installation and source credentials are managed through Power BI. See

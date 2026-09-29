@@ -27,6 +27,18 @@ def brief(report, table="Sales"):
         "design_rationale": "Emphasize the requested analytical decision with legible comparisons."}
 
 
+def as_authored(report):
+    """Turn the bootstrap fixture into an author-owned plan with its own design system."""
+    report["composition"] = "authored"
+    report["theme"]["palette"].update(canvas="#F4F1EA", accent="#8A4B2A")
+    report["design_system"] = {"concept": "Regional margin ledger for decision makers",
+        "derived_from": ["Revenue and cost share one order-line grain", "Audience compares a handful of regions"],
+        "tokens": {"canvas": "#F4F1EA", "panel": "#FFFFFF", "ink": "#182B3A", "muted": "#526572", "accent": "#8A4B2A"},
+        "typography": {"heading": "Segoe UI Semibold", "body": "Segoe UI"}, "grid": {"margin": 24, "gutter": 16, "columns": 12},
+        "filter_strategy": "One region dropdown in the header; the page answers one regional question."}
+    return report
+
+
 @pytest.mark.parametrize("flags", [{}, {"agent_mode": True}])
 def test_agent_mode_does_not_fall_back_to_bootstrap(tmp_path, flags):
     with pytest.raises(BuildError, match="Agent mode requires"):
@@ -36,8 +48,7 @@ def test_agent_mode_does_not_fall_back_to_bootstrap(tmp_path, flags):
 
 
 def test_brief_requires_real_evidence_and_every_page(model, report, sales):
-    report = deepcopy(report)
-    report["composition"] = "authored"
+    report = as_authored(deepcopy(report))
     good = brief(report)
     assert validate_brief(good, [sales.profile], report)["status"] == "passed"
     bad = deepcopy(good)
@@ -67,8 +78,8 @@ def test_agent_mode_preserves_distinct_authored_experiences(tmp_path, model, rep
                    text="Where is revenue concentrated?", text_style={"fontFamily": "Georgia", "fontSize": "26pt", "color": "#182B3A"}),
             visual("clusteredBarChart", "Regional contribution", 0, 88, 716, 548,
                    roles={"Category": [region], "Y": [revenue]}, sort=revenue, descending=True),
-            visual("cardVisual", "Revenue", 744, 88, 256, 180, roles={"Data": [revenue]}),
-            visual("cardVisual", "Margin", 744, 296, 256, 180, roles={"Data": [margin]}),
+            visual("cardVisual", "Revenue", 744, 88, 256, 180, roles={"Data": [revenue]}, style={"card_outline": False}),
+            visual("cardVisual", "Margin", 744, 296, 256, 180, roles={"Data": [margin]}, style={"card_outline": False}),
             visual("tableEx", "Supporting regional economics", 0, 664, 1000, 236,
                    roles={"Values": [region, revenue, margin]})]),
         ("Investigation", 1440, 810, [
@@ -80,8 +91,7 @@ def test_agent_mode_preserves_distinct_authored_experiences(tmp_path, model, rep
                    roles={"Values": [region, margin, revenue]}, sort=margin)])]
     authored = []
     for name, width, height, elements in designs:
-        plan = deepcopy(report)
-        plan["composition"] = "authored"
+        plan = as_authored(deepcopy(report))
         plan.update(width=width, height=height)
         plan["pages"] = [{"name": identity(name), "title": name, "visuals": elements}]
         spec = {"project": name + ".pbip", "sources": ["Sales.csv"], "business_goal": name,
@@ -98,8 +108,7 @@ def test_agent_mode_preserves_distinct_authored_experiences(tmp_path, model, rep
 
 
 def test_duplicate_analytical_visuals_fail_agent_review(report, sales):
-    report = deepcopy(report)
-    report["composition"] = "authored"
+    report = as_authored(deepcopy(report))
     report["pages"][0]["visuals"].append(deepcopy(report["pages"][0]["visuals"][0]))
     assert validate_brief(brief(report), [sales.profile], report)["status"] == "failed"
 
@@ -125,3 +134,28 @@ def test_portable_skill_bundle_is_self_contained_and_excludes_local_artifacts(tm
     assert "analysis-brief" in json.loads(result.stdout)
     result = subprocess.run([sys.executable, str(helper), "where"], capture_output=True, text=True, check=True, cwd=tmp_path)
     assert Path(json.loads(result.stdout)["runtime"]).parent == helper.parents[1]
+
+
+def test_design_system_is_required_and_must_not_be_the_preset(report, sales):
+    plan = as_authored(deepcopy(report))
+    assert validate_brief(brief(plan), [sales.profile], plan)["status"] == "passed"
+    missing = deepcopy(plan)
+    missing.pop("design_system")
+    assert any("design_system" in e for e in validate_brief(brief(missing), [sales.profile], missing)["errors"])
+    preset = deepcopy(plan)
+    preset["theme"]["palette"].update(canvas="#F2F5F7", accent="#196A83")
+    assert any("preset demo palette" in e for e in validate_brief(brief(preset), [sales.profile], preset)["errors"])
+
+
+def test_multi_visual_page_without_panels_or_cards_fails(report, sales):
+    plan = as_authored(deepcopy(report))
+    plan["theme"]["definition"].pop("visualStyles")
+    plan["pages"] = plan["pages"][:1]
+    page = plan["pages"][0]
+    for visual in page["visuals"]:
+        visual.pop("container_objects", None)
+        visual["style"] = {"background": False, "title_color": "#182B3A"}
+    assert any("bare canvas" in e for e in validate_brief(brief(plan), [sales.profile], plan)["errors"])
+    page["visuals"].insert(0, {"type": "shape", "title": "Content panel", "question": "Group the analysis", "layer": "background",
+        "style": {"fill": "#FFFFFF", "outline": False}, "position": {"x": 16, "y": 150, "width": 1248, "height": 550}})
+    assert validate_brief(brief(plan), [sales.profile], plan)["status"] == "passed"
