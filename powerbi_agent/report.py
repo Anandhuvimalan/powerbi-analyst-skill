@@ -129,9 +129,87 @@ def compile_slicer(settings, title, title_style):
     header = {"show": literal(settings.get("show_header", True)), "text": literal(title)}
     header.update({{"fontSize": "textSize"}.get(k, k): v for k, v in title_style.items() if k in {"fontColor", "fontSize", "fontFamily", "bold"}})
     objects["header"] = [{"properties": header}]
-    if settings.get("item_color") or settings.get("item_size"):
+    if settings.get("item_color") or settings.get("item_size") or settings.get("item_background"):
         objects["items"] = [{"properties": props(fontColor=color(settings["item_color"]) if settings.get("item_color") else None,
-            textSize=literal(settings["item_size"]) if settings.get("item_size") else None)}]
+            textSize=literal(settings["item_size"]) if settings.get("item_size") else None,
+            background=color(settings["item_background"]) if settings.get("item_background") else None)}]
+    return objects
+
+
+def compile_navigator(s):
+    """Page navigator buttons. Desktop saves these with plain state ids and no data wildcard."""
+    paint = lambda key: color(s[key]) if s.get(key) else None
+    by_state = lambda **values: [{"properties": p, "selector": {"id": state}} for state, p in values.items() if p]
+    objects = {}
+    if "corner" in s:
+        objects["shape"] = [{"properties": {"tileShape": literal("rectangleRoundedByPixel"),
+            "rectangleRoundedCurve": literal(s["corner"], integer=True)}, "selector": {"id": "default"}}]
+    fill = lambda key: props(show=literal(bool(s[key])), fillColor=paint(key), transparency=literal(0) if s[key] else None) if key in s else None
+    objects["fill"] = by_state(default=fill("tile_fill"), hover=fill("hover_fill"), selected=fill("selected_fill"))
+    objects["outline"] = by_state(default=props(show=literal(bool(s.get("tile_outline"))), lineColor=paint("tile_outline")),
+        selected=props(show=literal(bool(s["selected_outline"])), lineColor=paint("selected_outline")) if "selected_outline" in s else None)
+    objects["text"] = by_state(default=props(fontColor=paint("tile_text"), fontSize=literal(s["text_size"]) if "text_size" in s else None),
+        selected=props(fontColor=paint("selected_text"), bold=literal(True)))
+    return {k: v for k, v in objects.items() if v}
+
+
+MODERN_SLICERS = {"advancedSlicerVisual", "listSlicer"}
+STATE_IDS = {"default": "default", "selected": "selection:selected", "hover": "interaction:hover", "press": "interaction:press"}
+DATA_WILDCARD = {"data": [{"dataViewWildcard": {"matchingOption": 1}}], "hierarchyMatching": 1}
+
+
+def states(**by_state):
+    """Per-state properties in the encoding Desktop saves: colours under a data-wildcard
+    selector, everything else under the plain state selector."""
+    entries = []
+    for state, values in by_state.items():
+        values = {k: v for k, v in values.items() if v is not None}
+        plain = {k: v for k, v in values.items() if not (k == "color" or k.endswith("Color"))}
+        colours = {k: v for k, v in values.items() if k not in plain}
+        if plain:
+            entries.append({"properties": plain, "selector": {"id": STATE_IDS[state]}})
+        if colours:
+            entries.append({"properties": colours, "selector": {**DATA_WILDCARD, "id": STATE_IDS[state]}})
+    return entries
+
+
+def compile_modern_slicer(kind, settings):
+    """Button (advancedSlicerVisual) and list (listSlicer) slicers: tiles with designed default,
+    hover and selected states instead of the legacy checkbox/dropdown look."""
+    s, objects = settings, {}
+    paint = lambda key: color(s[key]) if s.get(key) else None
+    selection = props(strictSingleSelect=literal(s["single_select"]) if "single_select" in s else None,
+        selectAllCheckboxEnabled=literal(s["select_all"]) if "select_all" in s else None)
+    if selection:
+        objects["selection"] = [{"properties": selection}]
+    layout = props(columnCount=literal(s["columns"], integer=True) if "columns" in s else None,
+        rowCount=literal(s["rows"], integer=True) if "rows" in s else None,
+        maxTiles=literal(s["max_tiles"], integer=True) if "max_tiles" in s else None)
+    if layout:
+        objects["layout"] = [{"properties": layout}]
+    if "corner" in s:
+        objects["shapeCustomRectangle"] = [{"properties": {"tileShape": literal("rectangleRoundedByPixel"),
+            "rectangleRoundedCurve": literal(s["corner"], integer=True)}, "selector": {"id": "default"}}]
+    fill = lambda key: {"show": literal(bool(s[key])), "fillColor": paint(key), **({"transparency": literal(0)} if s[key] else {})} if key in s else None
+    fills = {state: fill(key) for state, key in (("default", "tile_fill"), ("hover", "hover_fill"), ("selected", "selected_fill")) if key in s}
+    if fills:
+        objects["fillCustom"] = states(**fills)
+    outline = lambda key: {"show": literal(bool(s[key])), "lineColor": paint(key), **({"weight": literal(s.get("outline_width", 1))} if s[key] else {})}
+    outlines = {state: outline(key) for state, key in (("default", "tile_outline"), ("selected", "selected_outline")) if key in s}
+    if outlines:
+        objects["outline"] = states(**outlines)
+    text = {"default": props(fontColor=paint("tile_text"), fontSize=literal(s["text_size"]) if "text_size" in s else None,
+                horizontalAlignment=literal(s["text_align"]) if "text_align" in s else None,
+                verticalAlignment=literal(s["text_valign"]) if "text_valign" in s else None),
+            "selected": props(fontColor=paint("selected_text"), bold=literal(True) if s.get("selected_bold", True) and kind == "advancedSlicerVisual" else None)}
+    text = {k: v for k, v in text.items() if v}
+    if text:
+        objects["value"] = states(**text)
+    if s.get("accent"):
+        bar = {"position": literal(s.get("accent_position", "Bottom")), "width": literal(s.get("accent_width", 3))}
+        objects["accentBar"] = states(default={"show": literal(False)},
+            hover={"show": literal(True), **bar, "color": color(s.get("hover_accent", s["accent"])), "transparency": literal(0 if s.get("hover_accent") else 60)},
+            selected={"show": literal(True), **bar, "color": color(s["accent"]), "transparency": literal(0)})
     return objects
 
 
@@ -211,11 +289,15 @@ class PbirWriter:
             visual["objects"] = {"general": [{"properties": {"paragraphs": [
                 {"textRuns": [{"value": spec["text"], "textStyle": spec.get("text_style", {})}]}]}}]}
         container, objects, title_style = compile_style(spec, effective_style(spec, plan or {}))
-        if spec["type"] in SLICERS and spec["type"] != "advancedSlicerVisual":
+        if spec["type"] == "slicer":
             # A slicer's own header is its title; a container title as well would print it twice.
             objects.update(compile_slicer(spec.get("slicer", {}), spec["title"], title_style))
             container["title"] = [{"properties": {"show": literal(False)}}]
-        elif spec["type"] not in DECORATIVE:
+        elif spec["type"] in MODERN_SLICERS and spec.get("slicer"):
+            objects.update(compile_modern_slicer(spec["type"], spec["slicer"]))
+        elif spec["type"] == "pageNavigator" and spec.get("navigator"):
+            objects.update(compile_navigator(spec["navigator"]))
+        if spec["type"] != "slicer" and spec["type"] not in DECORATIVE:
             # The authored title is the visual's heading; never let Power BI fall back to "Sum of X by Y".
             shown = spec.get("show_title", True)
             container["title"] = [{"properties": {"show": literal(shown), **({"text": literal(spec["title"]), **title_style} if shown else {})}}]

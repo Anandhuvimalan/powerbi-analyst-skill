@@ -26,8 +26,19 @@ def design_errors(visual, plan):
     if kind in SLICERS:
         if not visual.get("roles"):
             errors.append(f"{title}: slicer has no field binding")
-        if kind == "slicer" and "mode" not in visual.get("slicer", {}) and "data" not in objects:
-            errors.append(f"{title}: choose the slicer style deliberately (slicer.mode: Dropdown, HorizontalList, Between, Relative...)")
+        settings = visual.get("slicer", {})
+        if kind == "slicer" and "mode" not in settings and "data" not in objects:
+            errors.append(f"{title}: choose the slicer style deliberately (slicer.mode: Dropdown, Between, Relative...)")
+        if kind == "slicer" and settings.get("mode") in {"VerticalList", "HorizontalList", "Basic"}:
+            errors.append(f"{title}: legacy {settings['mode']} slicers look dated; use advancedSlicerVisual (buttons/tabs) or listSlicer with designed states")
+        if kind == "slicer" and settings.get("mode") == "Dropdown" and not (style.get("background") or style.get("border")
+                or visual.get("container_objects") or plan["theme"]["definition"].get("visualStyles")):
+            errors.append(f"{title}: a bare legacy dropdown looks dated; give it a container (style.background/border/radius/padding) and header/item styling")
+        if kind in {"advancedSlicerVisual", "listSlicer"}:
+            if "mode" in settings:
+                errors.append(f"{title}: slicer.mode applies only to the legacy slicer; design tiles with slicer tile/selected tokens")
+            if not (settings.get("selected_fill") or settings.get("accent") or "fillCustom" in objects or "accentBar" in objects):
+                errors.append(f"{title}: design the selected state (slicer.selected_fill or slicer.accent); the default is a heavy theme-coloured bar")
         # Mirrors Microsoft's PBIR_SLICER_HEIGHT_BELOW_FLOOR: header 28 + selector 32 + default padding 8/8.
         if visual.get("slicer", {}).get("mode") == "Dropdown":
             floor = (28 if visual["slicer"].get("show_header", True) else 0) + 32 + 16
@@ -40,6 +51,8 @@ def design_errors(visual, plan):
             errors.append(f"{title}: {points:g}pt text needs at least {floor:g}px height (with default padding) to avoid a scrollbar")
     if kind == "cardVisual" and "card_outline" not in style and "outline" not in objects:
         errors.append(f"{title}: decide the card's inner outline (style.card_outline: false removes Power BI's default grey box)")
+    if kind == "pageNavigator" and not visual.get("navigator") and "fill" not in objects:
+        errors.append(f"{title}: design the navigator buttons (navigator.tile_fill/selected_fill/tile_text...); the default navy buttons clash with most designs")
     themed = bool(plan["theme"]["definition"].get("visualStyles"))
     if kind not in DECORATIVE and not (themed or style or visual.get("container_objects")):
         errors.append(f"{title}: no authored container design (style, style_defaults, container_objects or theme visualStyles); Power BI defaults would become the design")

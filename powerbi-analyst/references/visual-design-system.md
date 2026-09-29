@@ -157,34 +157,83 @@ filters on, and where the filters live.
   page objects `outspacePane` and `filterCard` (`backgroundColor`,
   `foregroundColor`, `border`, `borderColor`, `fontFamily`).
 
-Pick the slicer style from the field. Every `slicer` must set `slicer.mode`.
+The legacy `slicer` with a checkbox list, tiles or a bare dropdown looks dated.
+Choose the visual from the field, and design its states:
 
-| Field | `slicer.mode` |
-|---|---|
-| Dates or periods | `Between`, or `Relative` for rolling windows; a `Dropdown` of Year / Year-Month for fiscal periods |
-| 2–6 values, often switched | `HorizontalList` (tile buttons) |
-| Many values | `Dropdown` |
-| Single-choice scenarios | `single_select: true` |
+| Field | Visual | Look |
+|---|---|---|
+| 2–8 values, switched often | `advancedSlicerVisual` | Segmented control (filled selected tile) or underline tabs (accent bar) |
+| 8–40 values, scanned | `listSlicer` | List with hover/selected fills, in a rail panel |
+| Many values, or a compact header | legacy `slicer`, `mode: "Dropdown"` | Restyled as a card: container background/border/radius, header and item colours |
+| Dates / periods | legacy `slicer`, `mode: "Between"` or `"Relative"`; or a button slicer on Year | Restyled as a card |
+
+Legacy `VerticalList`/`HorizontalList`/`Basic` modes are rejected. So are button
+and list slicers without a designed selected state, and bare dropdowns.
+
+**Segmented control** (verified in Desktop on a dark header band):
 
 ```json
-{"type": "slicer", "title": "Region", "question": "Which regions should the page compare?",
- "position": {"x": 900, "y": 10, "width": 170, "height": 76},
+{"type": "advancedSlicerVisual", "title": "Region", "question": "Which region should the page focus on?",
+ "position": {"x": 740, "y": 24, "width": 330, "height": 48}, "show_title": false,
  "roles": {"Values": [{"table": "sales", "name": "Region"}]},
- "slicer": {"mode": "Dropdown", "select_all": true, "sync_group": "region"},
- "style": {"title_color": "#F4F1EA", "background": false}}
+ "style": {"padding": 0, "background": false},
+ "slicer": {"columns": 4, "rows": 1, "corner": 6,
+            "tile_fill": "#3A2E25", "hover_fill": "#4A3B2F", "selected_fill": "#F4F1EA",
+            "tile_outline": false, "tile_text": "#D9D0C1", "selected_text": "#2B2118",
+            "text_size": 10, "text_align": "center", "text_valign": "middle", "sync_group": "region"}}
 ```
 
-- **Sizing.** A `Dropdown` with a header needs a height of **at least 76 px**
-  (header 28 + selector 32 + padding 16); without a header it needs 48 px. This is
-  enforced both by Microsoft's validator and by the plan check.
-- **Title.** The slicer's title becomes its own header. Style it with `title_*` and
-  its items with `slicer.item_color` / `slicer.item_size`.
+**Underline tabs:** use `"tile_fill": false, "tile_outline": false`, and add
+`"accent": "#E0A878"`. This gives a bottom accent bar on the selected item and a
+faint one on hover. Set `accent_position` / `accent_width` to change it.
+
+**Restyled dropdown:** the container is the card, and items must contrast with it.
+On a dark band, use light item text on a dark item background, or the value
+disappears:
+
+```json
+{"type": "slicer", "title": "Year", "position": {"x": 1086, "y": 10, "width": 170, "height": 76},
+ "roles": {"Values": [{"table": "DimDate", "name": "Year"}]},
+ "slicer": {"mode": "Dropdown", "sync_group": "year", "item_color": "#F4F1EA", "item_background": "#3A2E25", "item_size": 10},
+ "style": {"title_color": "#D9D0C1", "title_size": 9, "background": "#3A2E25", "border": "#5A4A3D",
+           "border_width": 1, "radius": 8, "padding": 6}}
+```
+
+Tokens by visual:
+
+| Visual | Tokens |
+|---|---|
+| Button and list slicers | `columns`, `rows`, `max_tiles`, `corner`, `tile_fill`, `hover_fill`, `selected_fill`, `tile_outline`, `selected_outline`, `outline_width`, `tile_text`, `selected_text`, `selected_bold`, `text_size`, `text_align`, `text_valign`, `accent`, `hover_accent`, `accent_position`, `accent_width` |
+| Legacy slicer | `mode`, `item_color`, `item_background`, `item_size`, `show_header` |
+| All slicers | `single_select`, `select_all`, `sync_group` |
+
+The executor writes state styling the way Desktop saves it:
+- **Slicers:** `default`, `interaction:hover` and `selection:selected` selectors.
+  Colours go under a data-wildcard selector.
+- **Page navigator:** plain `default`, `hover` and `selected` ids.
+
+Hand-written raw objects that skip this encoding fall back to a heavy
+theme-coloured bar.
+
+Other rules:
+- **Sizing.**
+  - A legacy dropdown with a header needs a height of **at least 76 px** (48 px
+    without a header); this is enforced.
+  - Button slicers need `style.padding: 0` and `text_valign: "middle"`, or their
+    text clips inside 40–50 px tiles.
+- **Titles.** Modern slicers use the container title (hide it with
+  `show_title: false` when the band already labels them). The legacy slicer's
+  title becomes its header.
 - **Sync.** When the same field is filtered on several pages, give each slicer the
-  same `slicer.sync_group` so selections carry across. Unsynced repeats are flagged.
+  same `sync_group`, so a selection on one page carries to the others (verified).
+  Unsynced repeats are flagged.
 - **Fixed scope.** Use page or visual `filters` for fixed scope, not visible
   slicers.
-- **Navigation.** A multi-page report needs visible navigation: a `pageNavigator`
-  (style its buttons for the band it sits on) or `actionButton`s.
+- **Navigation.** A multi-page report needs visible navigation. Design the
+  `pageNavigator` with `navigator` tokens (`tile_fill`, `hover_fill`,
+  `selected_fill`, `tile_outline`, `selected_outline`, `tile_text`,
+  `selected_text`, `text_size`, `corner`). A navigator without them is rejected,
+  because the default navy buttons clash with the band.
 
 ## 5. Review the rendered pages
 
@@ -195,7 +244,7 @@ screenshot every page, then inspect it for:
 - titles authored, not auto-generated, and not truncated;
 - axis labels readable, not rotated;
 - numbers formatted;
-- slicer headers visible against their background;
+- slicer text visible and not clipped, and a designed selected state;
 - tables and charts filling their panels;
 - navigation styled.
 

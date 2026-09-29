@@ -129,6 +129,8 @@ def plan_report(model, goal, brand=None):
         if len([p for p in pages if not p.get("hidden")]) > 1:
             page["visuals"].append({"type": "pageNavigator", "title": "Pages", "question": "Navigate analytical questions", "roles": {},
                 "position": {"x": 32, "y": 112, "width": 1216, "height": 32},
+                "navigator": {"tile_fill": theme["palette"]["surface"], "hover_fill": theme["palette"]["canvas"], "selected_fill": theme["palette"]["accent"],
+                    "tile_text": theme["palette"]["ink"], "selected_text": "#FFFFFF", "corner": 6},
                 "objects": {"pages": [{"properties": {"showHiddenPages": literal(False), "showTooltipPages": literal(False)}}],
                     "text": [{"selector": {"id": "default"}, "properties": {"fontSize": literal(11)}}],
                     "outline": [{"selector": {"id": "default"}, "properties": {"show": literal(False)}}]}})

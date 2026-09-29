@@ -202,3 +202,66 @@ def test_field_label_becomes_display_name(tmp_path, report, model):
     PbirWriter().apply(tmp_path, "Model.SemanticModel", plan)
     projection = read_json(next(tmp_path.rglob("visual.json")))["visual"]["query"]["queryState"]["Values"]["projections"][0]
     assert projection["displayName"] == "Product"
+
+
+def test_button_slicer_compiles_designed_states_in_desktop_encoding(tmp_path, report, model):
+    region = {"table": "Sales", "name": "Region"}
+    buttons = element("advancedSlicerVisual", "Region", 0, 0, 520, 60, roles={"Values": [region]}, show_title=False,
+        slicer={"columns": 4, "rows": 1, "corner": 8, "tile_fill": "#FFFFFF", "hover_fill": "#EFE7DC", "selected_fill": "#8A4B2A",
+                "tile_outline": "#D9D0C1", "selected_outline": False, "tile_text": "#2B2118", "selected_text": "#FFFFFF",
+                "text_align": "center", "sync_group": "region"})
+    plan = canvas(report, [buttons])
+    assert validate_report(plan, model)["status"] == "passed"
+    PbirWriter().apply(tmp_path, "Model.SemanticModel", plan)
+    visual = read_json(next(tmp_path.rglob("visual.json")))["visual"]
+    fills = {(e["selector"]["id"], "data" in e["selector"]): e["properties"] for e in visual["objects"]["fillCustom"]}
+    assert fills[("selection:selected", True)] == {"fillColor": color("#8A4B2A")}
+    assert fills[("interaction:hover", True)] == {"fillColor": color("#EFE7DC")}
+    assert fills[("default", False)]["show"] == literal(True)
+    assert visual["objects"]["layout"][0]["properties"]["columnCount"] == literal(4, integer=True)
+    assert visual["objects"]["shapeCustomRectangle"][0]["properties"]["rectangleRoundedCurve"] == literal(8, integer=True)
+    values = {(e["selector"]["id"], "data" in e["selector"]): e["properties"] for e in visual["objects"]["value"]}
+    assert values[("selection:selected", True)] == {"fontColor": color("#FFFFFF")}
+    assert values[("selection:selected", False)] == {"bold": literal(True)}
+    assert "header" not in visual["objects"] and "data" not in visual["objects"]
+    assert visual["visualContainerObjects"]["title"] == [{"properties": {"show": literal(False)}}]
+    assert visual["syncGroup"]["groupName"] == "region"
+
+
+def test_tab_slicer_uses_accent_bar_states(tmp_path, report, model):
+    region = {"table": "Sales", "name": "Region"}
+    plan = canvas(report, [element("advancedSlicerVisual", "Region", 0, 0, 520, 60, roles={"Values": [region]},
+        slicer={"columns": 4, "tile_fill": False, "tile_outline": False, "accent": "#8A4B2A"})])
+    assert validate_report(plan, model)["status"] == "passed"
+    PbirWriter().apply(tmp_path, "Model.SemanticModel", plan)
+    bars = {(e["selector"]["id"], "data" in e["selector"]): e["properties"] for e in read_json(next(tmp_path.rglob("visual.json")))["visual"]["objects"]["accentBar"]}
+    assert bars[("default", False)] == {"show": literal(False)}
+    assert bars[("selection:selected", False)]["position"] == literal("Bottom")
+    assert bars[("selection:selected", True)] == {"color": color("#8A4B2A")}
+
+
+def test_dated_slicer_designs_are_rejected(report, model):
+    region = {"table": "Sales", "name": "Region"}
+    plan = canvas(report, [element("advancedSlicerVisual", "Region", 0, 0, 520, 60, roles={"Values": [region]}, slicer={"columns": 4})])
+    assert any("selected state" in e for e in validate_report(plan, model)["errors"])
+    plan = canvas(report, [element("slicer", "Region", 0, 0, 240, 200, roles={"Values": [region]}, slicer={"mode": "VerticalList"})])
+    assert any("look dated" in e for e in validate_report(plan, model)["errors"])
+    plan["theme"]["definition"].pop("visualStyles")
+    plan["pages"][0]["visuals"][0]["slicer"] = {"mode": "Dropdown"}
+    plan["pages"][0]["visuals"][0]["position"]["height"] = 84
+    assert any("bare legacy dropdown" in e for e in validate_report(plan, model)["errors"])
+    plan["pages"][0]["visuals"][0]["style"] = {"background": "#FFFFFF", "border": "#D9D0C1", "radius": 8}
+    assert validate_report(plan, model)["status"] == "passed"
+
+
+def test_page_navigator_must_be_designed_and_uses_plain_state_ids(tmp_path, report, model):
+    nav = element("pageNavigator", "Pages", 0, 0, 240, 40)
+    plan = canvas(report, [nav])
+    assert any("navigator buttons" in e for e in validate_report(plan, model)["errors"])
+    nav["navigator"] = {"tile_fill": "#2B2118", "selected_fill": "#3A2E25", "tile_text": "#B8AC9C", "selected_text": "#FFFFFF", "corner": 6}
+    assert validate_report(plan, model)["status"] == "passed"
+    PbirWriter().apply(tmp_path, "Model.SemanticModel", plan)
+    objects = read_json(next(tmp_path.rglob("visual.json")))["visual"]["objects"]
+    fills = {e["selector"]["id"]: e["properties"] for e in objects["fill"]}
+    assert fills["selected"]["fillColor"] == color("#3A2E25") and "data" not in objects["fill"][0]["selector"]
+    assert {e["selector"]["id"]: e["properties"] for e in objects["text"]}["selected"]["bold"] == literal(True)

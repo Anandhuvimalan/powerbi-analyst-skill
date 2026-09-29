@@ -213,6 +213,9 @@
                 },
                 "subtitle": {
                   "type": "string"
+                },
+                "navigator": {
+                  "$ref": "#/$defs/navigator"
                 }
               }
             }
@@ -551,6 +554,211 @@
         },
         "item_size": {
           "type": "number",
+          "minimum": 0
+        },
+        "item_background": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_tiles": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "corner": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tile_fill": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            {
+              "const": false
+            }
+          ]
+        },
+        "hover_fill": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            {
+              "const": false
+            }
+          ]
+        },
+        "selected_fill": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            {
+              "const": false
+            }
+          ]
+        },
+        "tile_outline": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            {
+              "const": false
+            }
+          ]
+        },
+        "selected_outline": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            {
+              "const": false
+            }
+          ]
+        },
+        "outline_width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "tile_text": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "selected_text": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "selected_bold": {
+          "type": "boolean"
+        },
+        "text_size": {
+          "type": "number",
+          "minimum": 6
+        },
+        "text_align": {
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "accent": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "hover_accent": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "accent_position": {
+          "enum": [
+            "Bottom",
+            "Top",
+            "Left",
+            "Right"
+          ]
+        },
+        "accent_width": {
+          "type": "number",
+          "minimum": 1
+        },
+        "text_valign": {
+          "enum": [
+            "top",
+            "middle",
+            "bottom"
+          ]
+        }
+      }
+    },
+    "navigator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tile_fill": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            {
+              "const": false
+            }
+          ]
+        },
+        "hover_fill": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            {
+              "const": false
+            }
+          ]
+        },
+        "selected_fill": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            {
+              "const": false
+            }
+          ]
+        },
+        "tile_outline": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            {
+              "const": false
+            }
+          ]
+        },
+        "selected_outline": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            {
+              "const": false
+            }
+          ]
+        },
+        "tile_text": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "selected_text": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "text_size": {
+          "type": "number",
+          "minimum": 6
+        },
+        "corner": {
+          "type": "integer",
           "minimum": 0
         }
       }
